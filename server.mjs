@@ -1,5 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -45,8 +50,6 @@ app.post('/api/google-tts', async (req, res) => {
   const language = lang || 'es';
 
   try {
-    // Google Translate TTS tiene límite de ~200 chars por request
-    // Dividimos en fragmentos pequeños y concatenamos
     const chunks = splitForGoogle(text, 190);
     const audioBuffers = [];
 
@@ -69,7 +72,6 @@ app.post('/api/google-tts', async (req, res) => {
       audioBuffers.push(Buffer.from(arrayBuffer));
     }
 
-    // Concatenar todos los buffers MP3
     const finalBuffer = Buffer.concat(audioBuffers);
     
     res.set('Content-Type', 'audio/mpeg');
@@ -93,8 +95,6 @@ function splitForGoogle(text, maxLen = 190) {
     
     let end = pos + maxLen;
     const section = text.substring(pos, end);
-    
-    // Cortar en punto, coma o espacio
     const lastPeriod = section.lastIndexOf('. ');
     const lastComma = section.lastIndexOf(', ');
     const lastSpace = section.lastIndexOf(' ');
@@ -110,13 +110,21 @@ function splitForGoogle(text, maxLen = 190) {
     result.push(text.slice(pos, end));
     pos = end;
   }
-  
   return result;
 }
 
-const PORT = 3001;
+// ═══════════════════════════════════════════════
+// SERVE FRONTEND (Para producción en Render/Railway)
+// ═══════════════════════════════════════════════
+app.use(express.static(path.join(__dirname, 'dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`🎙️  TTS Server corriendo en http://localhost:${PORT}`);
+  console.log(`🎙️  TTS Server corriendo en el puerto ${PORT}`);
+  console.log(`   ├─ Frontend:   http://localhost:${PORT}`);
   console.log(`   ├─ Edge TTS:   POST /api/tts`);
   console.log(`   └─ Google TTS: POST /api/google-tts`);
 });
