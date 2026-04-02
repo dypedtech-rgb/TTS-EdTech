@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, Play, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
 import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth } from './utils/TTSProcessor';
 import './index.css';
@@ -29,6 +29,12 @@ function App() {
   
   // Demo playback state
   const [playingDemo, setPlayingDemo] = useState(false);
+
+  // Custom audio player state
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   // File base name
   const fileBaseName = file?.name.replace(/\.[^/.]+$/, '') || 'audio';
@@ -508,7 +514,58 @@ function App() {
                 <span>Consola de Salida</span>
               </div>
               <div className="file-tag mb-3">{fileBaseName}.{audioFormat}</div>
-              <audio controls src={audioUrl} className="cyber-audio" />
+              
+              {/* Custom Audio Player */}
+              <audio 
+                ref={audioRef} 
+                src={audioUrl} 
+                onTimeUpdate={() => {
+                  if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+                }}
+                onLoadedMetadata={() => {
+                  if (audioRef.current) setDuration(audioRef.current.duration);
+                }}
+                onEnded={() => setIsPlaying(false)}
+                style={{ display: 'none' }}
+              />
+              <div className="custom-player">
+                <button 
+                  className="player-btn"
+                  onClick={() => {
+                    if (!audioRef.current) return;
+                    if (isPlaying) {
+                      audioRef.current.pause();
+                    } else {
+                      audioRef.current.play();
+                    }
+                    setIsPlaying(!isPlaying);
+                  }}
+                >
+                  {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+                </button>
+                <span className="player-time">
+                  {formatTime(currentTime)}
+                </span>
+                <div className="player-track">
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || 0}
+                    step={0.1}
+                    value={currentTime}
+                    onChange={(e) => {
+                      const t = parseFloat(e.target.value);
+                      if (audioRef.current) audioRef.current.currentTime = t;
+                      setCurrentTime(t);
+                    }}
+                    className="player-seek"
+                  />
+                </div>
+                <span className="player-time">
+                  {formatTime(duration)}
+                </span>
+              </div>
+
               <button className="btn btn-secondary w-full mt-3" onClick={handleDownload}>
                 <Download size={18} />
                 Descargar {audioFormat.toUpperCase()} Exportado
@@ -519,6 +576,13 @@ function App() {
       </div>
     </div>
   );
+}
+
+function formatTime(sec: number): string {
+  if (!sec || !isFinite(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export default App;
