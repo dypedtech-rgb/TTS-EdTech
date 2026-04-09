@@ -498,9 +498,9 @@ function App() {
                         <div className="batch-item-meta">
                           {item.status === 'extracting' && 'Extrayendo texto...'}
                           {item.status === 'extracted' && `${item.wordCount.toLocaleString()} palabras`}
-                          {item.status === 'converting' && item.progress 
+                          {item.status === 'converting' && (item.progress 
                             ? `Bloque ${item.progress.current + 1}/${item.progress.total}`
-                            : 'Procesando...'}
+                            : 'Procesando...')}
                           {item.status === 'done' && 'Completado'}
                           {item.status === 'error' && (item.error || 'Error')}
                         </div>
