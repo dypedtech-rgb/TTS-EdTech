@@ -247,15 +247,34 @@ async function parsePdf(file: File): Promise<string> {
         if (pageLines[i].relativeY <= 0.35) {
           // Buscamos patrones de inicio de nota al pie: números sueltos seguidos de mayúscula,
           // o líneas separadoras (guiones), o apellidos en MAYÚSCULOS como inicio de línea.
-          if (/^\s*(\d+|[_]{2,})\s*/.test(pageLines[i].text) || /^\s*[A-ZÁÉÍÓÚÑ]{4,}/.test(pageLines[i].text)) {
+          if (/^\s*(\d+|[_]{2,}|[-]{3,})\s*/.test(pageLines[i].text) || /^\s*[A-ZÁÉÍÓÚÑ]{4,}/.test(pageLines[i].text)) {
+            
+            // FILTRO ESTRICTO DE ORACIÓN ABORTADA
+            if (i > 0) {
+               const prevLine = pageLines[i-1].text.trim();
+               const isAbruptCut = !/[.:;?!,"')\]]$/.test(prevLine);
+               if (isAbruptCut) continue; // Saltamos candidato, dejaría la oración flotando
+            }
+
             cutIndex = i;
             break;
           }
         }
       }
-      // Si no hay un marcador de inicio explícito, se descarta todo el 35% inferior por seguridad
+      
+      // Si no hay un marcador de inicio obvio, buscamos el primer corte natural
+      // dentro del bloque del 35% inferior que NO mutile la oración principal.
       if (cutIndex === -1) {
-        cutIndex = pageLines.findIndex(l => l.relativeY <= 0.35);
+        for (let i = 0; i < pageLines.length; i++) {
+          if (pageLines[i].relativeY <= 0.35) {
+            if (i > 0) {
+               const prevLine = pageLines[i-1].text.trim();
+               if (!/[.:;?!,"')\]]$/.test(prevLine)) continue;
+            }
+            cutIndex = i;
+            break;
+          }
+        }
       }
       
       if (cutIndex !== -1) {

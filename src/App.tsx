@@ -21,14 +21,15 @@ interface BatchItem {
 // ═══════════════════════════════════════════
 // Release Notes / Changelog
 // ═══════════════════════════════════════════
-const APP_VERSION = 'v2.6.0';
+const APP_VERSION = 'v2.6.3';
 const RELEASE_LOG = [
   {
-    version: 'v2.6.0',
+    version: 'v2.6.3',
     date: '2026-04-09',
     changes: [
       'PDF: Filtro "cortafuegos" por ejes Y para descartar pies de página bibliográficos o citas multilínea',
-      'PDF: Inyección proactiva de puntos en títulos y párrafos huérfanos antes de la siguiente oración en mayúsculas',
+      'PDF: Inclusión de "Puntos de Sutura" para garantizar que los cortes bibliográficos no mutilen oraciones en curso.',
+      'PDF: Inyección proactiva de puntos en títulos y párrafos huérfanos antes de la oración en mayúsculas',
       'Mejorada fluidez TTS al eliminar saltos narrativos abruptos',
     ],
   },
