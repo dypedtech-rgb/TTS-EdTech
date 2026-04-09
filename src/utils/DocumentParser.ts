@@ -163,7 +163,7 @@ async function parsePdf(file: File): Promise<string> {
   }
 
   // Fase 1.5: Detectar y omitir páginas de carátula
-  const pagesData = allPagesData.filter((pageData, idx) => !isCoverPage(pageData.items, idx, pageData.pageHeight));
+  const pagesData = allPagesData.filter((pageData, idx) => !isCoverPage(pageData.items, idx));
   const skippedCovers = allPagesData.length - pagesData.length;
   if (skippedCovers > 0) {
     console.log(`📄 PDF: ${skippedCovers} carátula(s) omitida(s)`);
@@ -362,7 +362,7 @@ function normalizeForComparison(text: string): string {
  * Detecta si una página es una carátula/portada que debe omitirse.
  * Heurística: muy poco texto, pocas líneas, o primera página sin oraciones completas.
  */
-function isCoverPage(items: TextItem[], pageIndex: number, pageHeight: number): boolean {
+function isCoverPage(items: TextItem[], pageIndex: number): boolean {
   // Solo las primeras 2 páginas pueden ser carátula
   if (pageIndex > 1) return false;
 
