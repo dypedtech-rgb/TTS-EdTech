@@ -170,8 +170,8 @@ async function parsePdf(file: File): Promise<string> {
   }
 
   // Fase 2: Detectar encabezados/pies repetidos por posición Y (con normalización fuzzy)
-  const headerThreshold = 0.92; // Top 8% = header zone
-  const footerThreshold = 0.08; // Bottom 8% = footer zone
+  const headerThreshold = 0.85; // Top 15% = header zone
+  const footerThreshold = 0.15; // Bottom 15% = footer zone
 
   const headerTexts = new Map<string, number>();
   const footerTexts = new Map<string, number>();
@@ -214,7 +214,7 @@ async function parsePdf(file: File): Promise<string> {
   for (const pageData of pagesData) {
     const { items, pageHeight } = pageData;
     const lines = groupItemsByLine(items);
-    const pageLines: string[] = [];
+    const pageLines: { text: string, relativeY: number }[] = [];
 
     for (const line of lines) {
       const lineText = line.text.trim();
@@ -233,24 +233,46 @@ async function parsePdf(file: File): Promise<string> {
       // Filtro 3: Texto muy corto en zona header/footer (cubre siglas institucionales)
       if ((relativeY >= headerThreshold || relativeY <= footerThreshold) && lineText.length <= 10) continue;
 
-      // Filtro 4: Bibliografía académica densa en el pie de página
-      if (relativeY <= 0.35 && isBibliographicLine(lineText)) {
-        break; // Descartar el resto de la página asumiendo que el resto son notas al pie
-      }
+      pageLines.push({ text: lineText, relativeY });
+    }
 
-      pageLines.push(lineText);
+    // Filtro 4: Acuchillado de notas bibliográficas en bloque
+    const bottomLines = pageLines.filter(l => l.relativeY <= 0.35);
+    const joinedBottomText = bottomLines.map(l => l.text).join(' ');
+
+    if (bottomLines.length > 0 && isBibliographicLine(joinedBottomText)) {
+      // Buscar el inicio de la cita dentro del arreglo general (desde el tercio inferior hacia abajo)
+      let cutIndex = -1;
+      for (let i = 0; i < pageLines.length; i++) {
+        if (pageLines[i].relativeY <= 0.35) {
+          // Buscamos patrones de inicio de nota al pie: números sueltos seguidos de mayúscula,
+          // o líneas separadoras (guiones), o apellidos en MAYÚSCULOS como inicio de línea.
+          if (/^\s*(\d+|[_]{2,})\s*/.test(pageLines[i].text) || /^\s*[A-ZÁÉÍÓÚÑ]{4,}/.test(pageLines[i].text)) {
+            cutIndex = i;
+            break;
+          }
+        }
+      }
+      // Si no hay un marcador de inicio explícito, se descarta todo el 35% inferior por seguridad
+      if (cutIndex === -1) {
+        cutIndex = pageLines.findIndex(l => l.relativeY <= 0.35);
+      }
+      
+      if (cutIndex !== -1) {
+        pageLines.splice(cutIndex); // Cortamos desde aquí hasta el final de la hoja
+      }
     }
 
     if (pageLines.length > 0) {
       let pageText = '';
       for (let i = 0; i < pageLines.length; i++) {
-        const line = pageLines[i];
+        const line = pageLines[i].text;
         pageText += line;
         
         // Inyectar puntuación si parece un título o fin de párrafo aislado
         const isShort = line.length <= 85;
         const endsWithPunctuation = /[.:;?!,"')\]]$/.test(line.trim());
-        const isNextLineCapitalized = i + 1 < pageLines.length && /^[A-ZÁÉÍÓÚÑ¿¡1-9]/.test(pageLines[i+1].trim());
+        const isNextLineCapitalized = i + 1 < pageLines.length && /^[A-ZÁÉÍÓÚÑ¿¡1-9]/.test(pageLines[i+1].text.trim());
 
         if (isShort && !endsWithPunctuation && isNextLineCapitalized) {
           pageText += '. ';
@@ -317,14 +339,16 @@ function isBibliographicLine(text: string): boolean {
 
 /**
  * Normaliza texto para comparación fuzzy de headers/footers.
- * Reemplaza dígitos con '#' para que "• 17 •" y "• 18 •" se consideren iguales.
+ * Reemplaza dígitos con '#' y elimina diacríticos/acentos para ser altamente agresivo con OCR.
  */
 function normalizeForComparison(text: string): string {
   return text
-    .trim()
     .toLowerCase()
-    .replace(/\d+/g, '#')
-    .replace(/\s+/g, ' ');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Elimina acentos ("Martínez" -> "martinez")
+    .replace(/\s+/g, ' ') // Normaliza espacios dobles
+    .replace(/\d/g, '#')
+    .trim();
 }
 
 /**
