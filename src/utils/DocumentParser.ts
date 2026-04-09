@@ -253,7 +253,12 @@ async function parsePdf(file: File): Promise<string> {
             if (i > 0) {
                const prevLine = pageLines[i-1].text.trim();
                const isAbruptCut = !/[.:;?!,"')\]]$/.test(prevLine);
-               if (isAbruptCut) continue; // Saltamos candidato, dejaría la oración flotando
+               const gap = Math.abs(pageLines[i-1].relativeY - pageLines[i].relativeY);
+               
+               // Si es corte abrupto, pero carece de un salto vertical evidente (>3.5%), es falso positivo
+               if (isAbruptCut && gap < 0.035) {
+                 continue; // Saltamos candidato, dejaría la oración flotando en el mismo párrafo
+               }
             }
 
             cutIndex = i;

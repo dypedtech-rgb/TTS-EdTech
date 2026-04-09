@@ -21,12 +21,13 @@ interface BatchItem {
 // ═══════════════════════════════════════════
 // Release Notes / Changelog
 // ═══════════════════════════════════════════
-const APP_VERSION = 'v2.6.3';
+const APP_VERSION = 'v2.6.4';
 const RELEASE_LOG = [
   {
-    version: 'v2.6.3',
+    version: 'v2.6.4',
     date: '2026-04-09',
     changes: [
+      'PDF: Incorporación de "Separación Estructural (Eje Y)" para diferenciar oraciones que fluyen de página frente a separadores de notas.',
       'PDF: Filtro "cortafuegos" por ejes Y para descartar pies de página bibliográficos o citas multilínea',
       'PDF: Inclusión de "Puntos de Sutura" para garantizar que los cortes bibliográficos no mutilen oraciones en curso.',
       'PDF: Inyección proactiva de puntos en títulos y párrafos huérfanos antes de la oración en mayúsculas',
