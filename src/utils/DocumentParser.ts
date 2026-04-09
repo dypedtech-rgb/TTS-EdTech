@@ -233,11 +233,32 @@ async function parsePdf(file: File): Promise<string> {
       // Filtro 3: Texto muy corto en zona header/footer (cubre siglas institucionales)
       if ((relativeY >= headerThreshold || relativeY <= footerThreshold) && lineText.length <= 10) continue;
 
+      // Filtro 4: Bibliografía académica densa en el pie de página
+      if (relativeY <= 0.35 && isBibliographicLine(lineText)) {
+        break; // Descartar el resto de la página asumiendo que el resto son notas al pie
+      }
+
       pageLines.push(lineText);
     }
 
     if (pageLines.length > 0) {
-      cleanPages.push(pageLines.join(' '));
+      let pageText = '';
+      for (let i = 0; i < pageLines.length; i++) {
+        const line = pageLines[i];
+        pageText += line;
+        
+        // Inyectar puntuación si parece un título o fin de párrafo aislado
+        const isShort = line.length <= 85;
+        const endsWithPunctuation = /[.:;?!,"')\]]$/.test(line.trim());
+        const isNextLineCapitalized = i + 1 < pageLines.length && /^[A-ZÁÉÍÓÚÑ¿¡1-9]/.test(pageLines[i+1].trim());
+
+        if (isShort && !endsWithPunctuation && isNextLineCapitalized) {
+          pageText += '. ';
+        } else {
+          pageText += ' ';
+        }
+      }
+      cleanPages.push(pageText.trim());
     }
   }
 
@@ -276,6 +297,22 @@ function groupItemsByLine(items: TextItem[]): { text: string, y: number }[] {
  */
 function isPageNumber(text: string): boolean {
   return PAGE_NUMBER_PATTERNS.some(pattern => pattern.test(text));
+}
+
+/**
+ * Detecta líneas que probablemente sean el inicio de una nota al pie bibliográfica
+ */
+function isBibliographicLine(text: string): boolean {
+  let score = 0;
+  if (/ob\.?\s*cit\.?/i.test(text)) score += 2;
+  if (/\b(pág[s]?\.?|ps\.?)\b/i.test(text)) score += 1;
+  if (/\b[E]dit\.?/i.test(text) || /edición/i.test(text)) score += 1;
+  if (/\b(19|20)\d{2}\b/.test(text)) score += 1;
+  
+  const caps = text.match(/\b[A-ZÁÉÍÓÚÑ]{3,}\b/g);
+  if (caps && caps.length >= 2) score += 1;
+  
+  return score >= 2;
 }
 
 /**
