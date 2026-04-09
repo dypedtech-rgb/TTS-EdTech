@@ -25,14 +25,106 @@ export async function parseDocument(file: File): Promise<string> {
 
 async function parseDocx(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.extractRawText({ arrayBuffer });
-  return result.value;
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  const html = result.value;
+  
+  // Reemplazar tablas con placeholders verbales para TTS
+  return processHtmlWithTablePlaceholders(html, file.name);
+}
+
+// Patrón para detectar títulos de tablas/cuadros/figuras
+const TABLE_TITLE_PATTERN = /cuadro|tabla|table|figura|figure/i;
+
+/**
+ * Procesa HTML de mammoth: reemplaza <table> con placeholders verbales
+ * que indican al oyente consultar el documento original.
+ */
+function processHtmlWithTablePlaceholders(html: string, fileName: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  
+  let tableCounter = 0;
+  const tables = doc.querySelectorAll('table');
+  
+  tables.forEach(table => {
+    tableCounter++;
+    const { title, titleElement } = extractTableTitle(table, tableCounter);
+    
+    // Crear placeholder verbal
+    const placeholder = doc.createElement('p');
+    placeholder.textContent = `Por favor revisa la tabla "${title}" del Documento "${fileName}".`;
+    
+    // Reemplazar la tabla con el placeholder
+    table.parentNode?.replaceChild(placeholder, table);
+    
+    // Eliminar el párrafo-título huérfano que precedía a la tabla
+    if (titleElement && titleElement.parentNode) {
+      titleElement.parentNode.removeChild(titleElement);
+    }
+    
+    // Eliminar captions post-tabla (notas al pie tipo "a Se indica artículo(s)..." o "D = diputados...")
+    let next = placeholder.nextElementSibling;
+    while (next) {
+      const nextText = (next.textContent || '').trim();
+      // Captions son párrafos cortos que comienzan con letra minúscula + espacio, o MAYÚSCULA = ...
+      if (nextText.length < 200 && (/^[a-z]\s/.test(nextText) || /^[A-Z]\s*=/.test(nextText))) {
+        const toRemove = next;
+        next = next.nextElementSibling;
+        toRemove.parentNode?.removeChild(toRemove);
+      } else {
+        break;
+      }
+    }
+  });
+  
+  if (tableCounter > 0) {
+    console.log(`📄 DOCX: ${tableCounter} tabla(s) reemplazada(s) con placeholders verbales`);
+  }
+  
+  // Extraer texto limpio del HTML modificado
+  return (doc.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * Extrae el título de una tabla buscando en dos ubicaciones:
+ * A) Dentro de la primera celda de la tabla
+ * B) En el elemento hermano anterior (párrafo previo)
+ */
+function extractTableTitle(table: Element, fallbackIndex: number): { title: string, titleElement: Element | null } {
+  // Estrategia A: Título en alguna celda de la primera fila de la tabla
+  const firstRow = table.querySelector('tr');
+  if (firstRow) {
+    const cells = firstRow.querySelectorAll('td, th');
+    for (const cell of cells) {
+      const cellText = (cell.textContent || '').trim();
+      if (cellText && TABLE_TITLE_PATTERN.test(cellText)) {
+        return { title: cellText, titleElement: null };
+      }
+    }
+  }
+  
+  // Estrategia B: Título en el párrafo anterior a la tabla
+  let prev = table.previousElementSibling;
+  let stepsBack = 0;
+  while (prev && stepsBack < 3) {
+    const prevText = (prev.textContent || '').trim();
+    if (TABLE_TITLE_PATTERN.test(prevText)) {
+      return { title: prevText, titleElement: prev };
+    }
+    prev = prev.previousElementSibling;
+    stepsBack++;
+  }
+  
+  // Fallback: nombre genérico
+  return { title: `Tabla ${fallbackIndex}`, titleElement: null };
 }
 
 // Patrones de numeración de página que debemos eliminar
 const PAGE_NUMBER_PATTERNS = [
   /^\s*\d{1,4}\s*$/,                          // Solo un número: "1", "  23  "
   /^\s*-\s*\d{1,4}\s*-\s*$/,                  // Guionado: "- 5 -"
+  /^\s*[–—]\s*\d{1,4}\s*[–—]\s*$/,           // Dashes: "– 5 –"
+  /^\s*•\s*\d{1,4}\s*•\s*$/,                  // Bullets: "• 17 •"
   /^\s*página\s+\d+/i,                        // "Página 12"
   /^\s*page\s+\d+/i,                          // "Page 12"
   /^\s*pág\.?\s*\d+/i,                        // "Pág. 12"
@@ -52,7 +144,7 @@ async function parsePdf(file: File): Promise<string> {
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   
   // Fase 1: Extraer texto con posiciones Y de cada página
-  const pagesData: { items: TextItem[], pageHeight: number }[] = [];
+  const allPagesData: { items: TextItem[], pageHeight: number }[] = [];
   
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -67,10 +159,17 @@ async function parsePdf(file: File): Promise<string> {
         height: item.height || 12
       }));
     
-    pagesData.push({ items, pageHeight: viewport.height });
+    allPagesData.push({ items, pageHeight: viewport.height });
   }
 
-  // Fase 2: Detectar encabezados/pies repetidos por posición Y
+  // Fase 1.5: Detectar y omitir páginas de carátula
+  const pagesData = allPagesData.filter((pageData, idx) => !isCoverPage(pageData.items, idx, pageData.pageHeight));
+  const skippedCovers = allPagesData.length - pagesData.length;
+  if (skippedCovers > 0) {
+    console.log(`📄 PDF: ${skippedCovers} carátula(s) omitida(s)`);
+  }
+
+  // Fase 2: Detectar encabezados/pies repetidos por posición Y (con normalización fuzzy)
   const headerThreshold = 0.92; // Top 8% = header zone
   const footerThreshold = 0.08; // Bottom 8% = footer zone
 
@@ -82,7 +181,7 @@ async function parsePdf(file: File): Promise<string> {
     
     for (const item of items) {
       const relativeY = item.y / pageHeight;
-      const normalized = item.str.trim().toLowerCase();
+      const normalized = normalizeForComparison(item.str);
       
       if (normalized.length === 0) continue;
       
@@ -95,8 +194,8 @@ async function parsePdf(file: File): Promise<string> {
     }
   }
 
-  // Un texto es header/footer si aparece en >= 50% de las páginas (mínimo 2)
-  const minRepetitions = Math.max(2, Math.floor(pdf.numPages * 0.5));
+  // Un texto es header/footer si aparece en >= 30% de las páginas de contenido (mínimo 2)
+  const minRepetitions = Math.max(2, Math.floor(pagesData.length * 0.3));
   const repeatedHeaders = new Set<string>();
   const repeatedFooters = new Set<string>();
 
@@ -107,7 +206,7 @@ async function parsePdf(file: File): Promise<string> {
     if (count >= minRepetitions) repeatedFooters.add(text);
   }
 
-  console.log(`📄 PDF: ${pdf.numPages} páginas | Headers detectados: ${repeatedHeaders.size} | Footers: ${repeatedFooters.size}`);
+  console.log(`📄 PDF: ${pdf.numPages} páginas (${pagesData.length} de contenido) | Headers detectados: ${repeatedHeaders.size} | Footers: ${repeatedFooters.size}`);
 
   // Fase 3: Reconstruir texto limpio
   const cleanPages: string[] = [];
@@ -122,17 +221,17 @@ async function parsePdf(file: File): Promise<string> {
       if (!lineText) continue;
 
       const relativeY = line.y / pageHeight;
-      const normalized = lineText.toLowerCase();
+      const normalized = normalizeForComparison(lineText);
 
-      // Filtro 1: Encabezado/pie repetido
+      // Filtro 1: Encabezado/pie repetido (comparación fuzzy)
       if (relativeY >= headerThreshold && repeatedHeaders.has(normalized)) continue;
       if (relativeY <= footerThreshold && repeatedFooters.has(normalized)) continue;
 
       // Filtro 2: Número de página
       if (isPageNumber(lineText)) continue;
 
-      // Filtro 3: Texto muy corto en zona header/footer
-      if ((relativeY >= headerThreshold || relativeY <= footerThreshold) && lineText.length <= 5) continue;
+      // Filtro 3: Texto muy corto en zona header/footer (cubre siglas institucionales)
+      if ((relativeY >= headerThreshold || relativeY <= footerThreshold) && lineText.length <= 10) continue;
 
       pageLines.push(lineText);
     }
@@ -177,4 +276,43 @@ function groupItemsByLine(items: TextItem[]): { text: string, y: number }[] {
  */
 function isPageNumber(text: string): boolean {
   return PAGE_NUMBER_PATTERNS.some(pattern => pattern.test(text));
+}
+
+/**
+ * Normaliza texto para comparación fuzzy de headers/footers.
+ * Reemplaza dígitos con '#' para que "• 17 •" y "• 18 •" se consideren iguales.
+ */
+function normalizeForComparison(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/\d+/g, '#')
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Detecta si una página es una carátula/portada que debe omitirse.
+ * Heurística: muy poco texto, pocas líneas, o primera página sin oraciones completas.
+ */
+function isCoverPage(items: TextItem[], pageIndex: number, pageHeight: number): boolean {
+  // Solo las primeras 2 páginas pueden ser carátula
+  if (pageIndex > 1) return false;
+
+  const totalText = items.map(i => i.str).join(' ').trim();
+  const lines = groupItemsByLine(items);
+  const lineCount = lines.length;
+
+  // Muy poco texto = carátula
+  if (totalText.length < 200) return true;
+
+  // Muy pocas líneas = portada tipográfica
+  if (lineCount < 5) return true;
+
+  // Primera página sin oraciones completas (sin puntos) = portada
+  if (pageIndex === 0) {
+    const firstLines = lines.slice(0, 4).map(l => l.text).join(' ');
+    if (!firstLines.includes('.')) return true;
+  }
+
+  return false;
 }
