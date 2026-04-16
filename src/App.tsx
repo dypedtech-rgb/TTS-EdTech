@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
 import { cleanDocumentText } from './utils/AICleaner';
-import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth, getApiBaseUrl, setApiBaseUrl } from './utils/TTSProcessor';
+import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth, getApiBaseUrl } from './utils/TTSProcessor';
 import { scanForForeignWords, type ScannedWord } from './utils/ForeignWordScanner';
 import JSZip from 'jszip';
 import './index.css';
@@ -938,22 +938,10 @@ function App() {
                 </div>
               )}
               {serverStatus === 'offline' && (
-                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
-                  <button className="server-retry-btn" style={{ background: '#27272a', borderColor: '#3f3f46', color: '#a1a1aa' }} onClick={() => {
-                    const url = window.prompt('URL del servidor API Node.js:', getApiBaseUrl());
-                    if (url !== null) {
-                      setApiBaseUrl(url);
-                      wakeServer();
-                    }
-                  }}>
-                    <Server size={12} />
-                    Configurar
-                  </button>
-                  <button className="server-retry-btn" onClick={wakeServer}>
-                    <RefreshCw size={12} />
-                    Reintentar
-                  </button>
-                </div>
+                <button className="server-retry-btn" onClick={wakeServer}>
+                  <RefreshCw size={12} />
+                  Reintentar
+                </button>
               )}
             </div>
           )}
@@ -963,16 +951,6 @@ function App() {
                 <Wifi size={14} />
                 <span title={getApiBaseUrl()}>Servidor conectado</span>
               </div>
-              <button className="server-retry-btn" style={{ marginLeft: 'auto', background: 'rgba(94, 234, 212, 0.1)', borderColor: 'rgba(20, 184, 166, 0.2)', color: '#5eead4' }} onClick={() => {
-                const url = window.prompt('URL del servidor API Node.js:', getApiBaseUrl());
-                if (url !== null) {
-                  setApiBaseUrl(url);
-                  wakeServer();
-                }
-              }}>
-                <Server size={12} />
-                Cambiar
-              </button>
             </div>
           )}
 
