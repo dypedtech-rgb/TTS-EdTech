@@ -39,8 +39,19 @@ interface AiReportModalData {
 // ═══════════════════════════════════════════
 // Release Notes / Changelog
 // ═══════════════════════════════════════════
-const APP_VERSION = 'v3.0.0';
+const APP_VERSION = 'v3.1.0';
 const RELEASE_LOG = [
+  {
+    version: 'v3.1.0',
+    date: '2026-04-16',
+    changes: [
+      '🤖 Limpieza Híbrida IA + Regex: Nuevo motor determinístico seguro que elimina basura estructural (pingbacks, URLs, fechas de artículos web, paginación) preservando 100% el texto narrativo.',
+      '✨ IA Quirúrgica + OpenRouter: Las lecturas exhaustivas por IA se redujeron a 1 sola llamada ultra-rápida (sólo lee 1500 letras) exclusiva para extraer el título y purgar errores ortográficos exactos limitando las demoras y caídas (error 429).',
+      '🔧 Motor Auto-Wrap: Identifica inteligente saltos de línea inusuales generados por la conversión PDF (donde no hay puntuación limitante) y los suelda en una oración fluida.',
+      '🩺 Reporte Clínico: El modal IA ahora no ofrece resúmenes ambiguos. Enlista quirúrgicamente cada fragmento barrido por Regex y cómo quedó cada falta ortográfica intervenida.',
+      '🎛️ Motor URL Personalizado: Implementado botón (Configurar/Cambiar) en UI para puentear el cliente web local hacia servidores TTS expuestos vía Ngrok / Localhost sin necesidad de recompilar.',
+    ],
+  },
   {
     version: 'v3.0.0',
     date: '2026-04-13',
