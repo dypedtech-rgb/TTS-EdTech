@@ -67,6 +67,24 @@ function cleanTextWithRegex(text: string): { cleanText: string; removedFragments
       continue;
     }
 
+    // Regla 5b: Líneas de formulario/tabla (#N ___ + #N ___ = Total ...)
+    if (/#\d+\s+___/.test(trimmed) && (trimmed.match(/#\d+/g) || []).length >= 3) {
+      removed.push(`📊 Formulario/tabla: ${trimmed.slice(0, 60)}...`);
+      continue;
+    }
+
+    // Regla 5c: Líneas con exceso de guiones bajos (campos de llenado de formularios)
+    if ((trimmed.match(/___/g) || []).length >= 3) {
+      removed.push(`📊 Campos de formulario: ${trimmed.slice(0, 60)}...`);
+      continue;
+    }
+
+    // Regla 5d: Líneas tipo "Evaluación de la persona X, columna X."
+    if (/^Evaluación de la persona\s+\w+,?\s+columna\s+\w+\.?$/i.test(trimmed)) {
+      removed.push(`📊 Encabezado formulario: ${trimmed}`);
+      continue;
+    }
+
     // Regla 6: Indicador "Página N"
     if (/^Página\s+\d+/i.test(trimmed)) {
       removed.push(`📄 Indicador: ${trimmed}`);
