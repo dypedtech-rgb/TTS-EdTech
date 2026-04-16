@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
 import { cleanDocumentText } from './utils/AICleaner';
-import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth } from './utils/TTSProcessor';
+import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth, getApiBaseUrl, setApiBaseUrl } from './utils/TTSProcessor';
 import { scanForForeignWords, type ScannedWord } from './utils/ForeignWordScanner';
 import JSZip from 'jszip';
 import './index.css';
@@ -227,7 +227,7 @@ function App() {
     }
     
     setServerStatus('offline');
-    setServerMessage('No se pudo conectar al servidor');
+    setServerMessage(`Error de conexión al servidor (${getApiBaseUrl() || 'localhost'})`);
   };
 
   useEffect(() => {
@@ -919,7 +919,7 @@ function App() {
                 {serverStatus === 'checking' && <Loader2 size={14} className="spinner" />}
                 {serverStatus === 'waking' && <Server size={14} className="server-pulse" />}
                 {serverStatus === 'offline' && <WifiOff size={14} />}
-                <span>{serverMessage}</span>
+                <span title={getApiBaseUrl()}>{serverMessage}</span>
               </div>
               {serverStatus === 'waking' && (
                 <div className="server-progress">
@@ -927,10 +927,22 @@ function App() {
                 </div>
               )}
               {serverStatus === 'offline' && (
-                <button className="server-retry-btn" onClick={wakeServer}>
-                  <RefreshCw size={12} />
-                  Reintentar
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
+                  <button className="server-retry-btn" style={{ background: '#27272a', borderColor: '#3f3f46', color: '#a1a1aa' }} onClick={() => {
+                    const url = window.prompt('URL del servidor API Node.js:', getApiBaseUrl());
+                    if (url !== null) {
+                      setApiBaseUrl(url);
+                      wakeServer();
+                    }
+                  }}>
+                    <Server size={12} />
+                    Configurar
+                  </button>
+                  <button className="server-retry-btn" onClick={wakeServer}>
+                    <RefreshCw size={12} />
+                    Reintentar
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -938,8 +950,18 @@ function App() {
             <div className="server-status-banner online">
               <div className="server-status-content">
                 <Wifi size={14} />
-                <span>Servidor conectado</span>
+                <span title={getApiBaseUrl()}>Servidor conectado</span>
               </div>
+              <button className="server-retry-btn" style={{ marginLeft: 'auto', background: 'rgba(94, 234, 212, 0.1)', borderColor: 'rgba(20, 184, 166, 0.2)', color: '#5eead4' }} onClick={() => {
+                const url = window.prompt('URL del servidor API Node.js:', getApiBaseUrl());
+                if (url !== null) {
+                  setApiBaseUrl(url);
+                  wakeServer();
+                }
+              }}>
+                <Server size={12} />
+                Cambiar
+              </button>
             </div>
           )}
 

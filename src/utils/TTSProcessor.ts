@@ -9,15 +9,25 @@ export interface TTSOptions {
 }
 
 // ═══════════════════════════════════════════════
-// Auto-detect API URL: localhost for dev, Render for production
+// Auto-detect API URL or use custom from localStorage
 // ═══════════════════════════════════════════════
-const getApiBaseUrl = (): string => {
+export const getApiBaseUrl = (): string => {
+  const customUrl = localStorage.getItem('TTS_API_URL');
+  if (customUrl) return customUrl.replace(/\/$/, ''); // Remove trailing slash
+
   if (import.meta.env?.DEV) {
     return ''; // Uses Vite proxy
   }
   // Production: Render.com server URL
-  // Update this after deploying to Render
   return 'https://edtech-tts.onrender.com';
+};
+
+export const setApiBaseUrl = (url: string | null) => {
+  if (!url || url.trim() === '') {
+    localStorage.removeItem('TTS_API_URL');
+  } else {
+    localStorage.setItem('TTS_API_URL', url.trim());
+  }
 };
 
 // Kokoro model singleton (lazy-loaded)
