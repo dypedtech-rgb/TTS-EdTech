@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
+import { cleanDocumentText } from './utils/AICleaner';
 import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth } from './utils/TTSProcessor';
 import { scanForForeignWords, type ScannedWord } from './utils/ForeignWordScanner';
 import JSZip from 'jszip';
@@ -11,12 +12,28 @@ interface BatchItem {
   file: File;
   baseName: string;
   text: string;
-  status: 'pending' | 'extracting' | 'extracted' | 'converting' | 'done' | 'error';
+  status: 'pending' | 'extracting' | 'cleaning' | 'extracted' | 'converting' | 'done' | 'error';
   progress?: { current: number; total: number };
   audioBlob?: Blob;
   audioUrl?: string;
   error?: string;
   wordCount: number;
+  aiOriginalText?: string;
+  aiRemovedFragments?: string[];
+  aiCorrections?: { mal: string; bien: string }[];
+  aiDetectedTitle?: string;
+  wordCountOriginal?: number;
+}
+
+interface AiReportModalData {
+  fileName: string;
+  originalText: string;
+  cleanText: string;
+  wordsBefore: number;
+  wordsAfter: number;
+  removedFragments: string[];
+  corrections: { mal: string; bien: string }[];
+  detectedTitle: string;
 }
 
 // ═══════════════════════════════════════════
@@ -144,6 +161,9 @@ function App() {
 
   // Configuración de Purado PDF
   const [removeExtraneousText, setRemoveExtraneousText] = useState(true);
+  const [useAiCleaner, setUseAiCleaner] = useState(false);
+  const [aiReportModal, setAiReportModal] = useState<AiReportModalData | null>(null);
+  const [aiReportTab, setAiReportTab] = useState<'summary' | 'original' | 'clean'>('summary');
 
   // Audio format based on provider
   const audioFormat = provider === 'kokoro' ? 'wav' : 'mp3';
@@ -291,11 +311,35 @@ function App() {
     // Extract text for each new file
     for (const item of newItems) {
       try {
-        const extractedText = await parseDocument(item.file, { removeExtraneousText });
-        const wc = extractedText.split(/\s+/).filter(w => w.length > 0).length;
+        let extractedText = await parseDocument(item.file, { removeExtraneousText });
+        const wcOriginal = extractedText.split(/\s+/).filter(w => w.length > 0).length;
+        let wc = wcOriginal;
+        let aiOriginal: string | undefined = undefined;
+        let aiFragments: string[] | undefined = undefined;
+        let aiCorrs: { mal: string; bien: string }[] | undefined = undefined;
+        let aiTitle: string | undefined = undefined;
+        let wcOrig: number | undefined = undefined;
+
+        if (useAiCleaner) {
+          setItems(prev => prev.map(i => 
+            i.id === item.id 
+              ? { ...i, status: 'cleaning' } 
+              : i
+          ));
+          
+          const cleanResp = await cleanDocumentText(extractedText, item.file.name);
+          aiOriginal = cleanResp.originalText;
+          aiFragments = cleanResp.removedFragments;
+          aiCorrs = cleanResp.corrections;
+          aiTitle = cleanResp.detectedTitle;
+          wcOrig = wcOriginal;
+          extractedText = cleanResp.cleanText;
+          wc = extractedText.split(/\s+/).filter(w => w.length > 0).length;
+        }
+
         setItems(prev => prev.map(i => 
           i.id === item.id 
-            ? { ...i, text: extractedText, status: 'extracted', wordCount: wc } 
+            ? { ...i, text: extractedText, status: 'extracted', wordCount: wc, aiOriginalText: aiOriginal, aiRemovedFragments: aiFragments, aiCorrections: aiCorrs, aiDetectedTitle: aiTitle, wordCountOriginal: wcOrig } 
             : i
         ));
       } catch {
@@ -562,6 +606,110 @@ function App() {
         </div>
       )}
 
+      {/* AI Cleaner Report Modal */}
+      {aiReportModal && (
+        <div className="release-overlay" onClick={() => { setAiReportModal(null); setAiReportTab('summary'); }}>
+          <div className="release-modal" style={{ maxWidth: '720px', width: '90vw' }} onClick={e => e.stopPropagation()}>
+            <div className="release-modal-header" style={{ borderBottom: '1px solid #27272a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={18} className="text-cyber-teal" />
+                <span>Informe Limpieza: {aiReportModal.fileName}</span>
+              </div>
+              <button className="release-close-btn" onClick={() => { setAiReportModal(null); setAiReportTab('summary'); }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Stats bar */}
+            <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderBottom: '1px solid #27272a', fontSize: '0.8rem', color: '#a1a1aa', flexWrap: 'wrap' }}>
+              {aiReportModal.detectedTitle && (
+                <div style={{ width: '100%', marginBottom: '0.25rem', color: '#5eead4', fontWeight: 600 }}>
+                  📖 "{aiReportModal.detectedTitle}"
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <FileText size={13} />
+                <span>Antes: <strong style={{ color: '#d4d4d8' }}>{aiReportModal.wordsBefore.toLocaleString()}</strong> palabras</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <CheckCircle2 size={13} className="text-cyber-teal" />
+                <span>Después: <strong style={{ color: '#5eead4' }}>{aiReportModal.wordsAfter.toLocaleString()}</strong> palabras</span>
+              </div>
+              {aiReportModal.wordsBefore > aiReportModal.wordsAfter && (
+                <div style={{ marginLeft: 'auto', color: '#ef4444', fontWeight: 600 }}>
+                  −{(aiReportModal.wordsBefore - aiReportModal.wordsAfter).toLocaleString()} ({Math.round(((aiReportModal.wordsBefore - aiReportModal.wordsAfter) / aiReportModal.wordsBefore) * 100)}%)
+                </div>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #27272a' }}>
+              {(['summary', 'original', 'clean'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setAiReportTab(tab)}
+                  style={{
+                    flex: 1, padding: '0.6rem', fontSize: '0.78rem', fontWeight: 600,
+                    background: aiReportTab === tab ? '#18181b' : 'transparent',
+                    color: aiReportTab === tab ? '#5eead4' : '#71717a',
+                    border: 'none', cursor: 'pointer',
+                    borderBottom: aiReportTab === tab ? '2px solid #14b8a6' : '2px solid transparent',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {tab === 'summary' ? `📋 Cambios (${aiReportModal.removedFragments.length + aiReportModal.corrections.length})` : tab === 'original' ? '📄 Texto Original' : '✨ Texto Limpio'}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <div className="release-modal-body" style={{ padding: '1rem', maxHeight: '55vh', overflowY: 'auto' }}>
+              {aiReportTab === 'summary' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {aiReportModal.removedFragments.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Fragmentos eliminados ({aiReportModal.removedFragments.length})</div>
+                      {aiReportModal.removedFragments.map((frag, idx) => (
+                        <div key={idx} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#18181b', borderLeft: '2px solid #ef4444', color: '#d4d4d8', fontSize: '0.8rem', borderRadius: '0 4px 4px 0' }}>
+                          {frag}
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {aiReportModal.corrections.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', marginTop: '0.5rem', marginBottom: '0.25rem' }}>Correcciones ortográficas ({aiReportModal.corrections.length})</div>
+                      {aiReportModal.corrections.map((c, idx) => (
+                        <div key={idx} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#18181b', borderLeft: '2px solid #f59e0b', color: '#d4d4d8', fontSize: '0.8rem', borderRadius: '0 4px 4px 0' }}>
+                          <span style={{ textDecoration: 'line-through', color: '#ef4444' }}>{c.mal}</span>
+                          <span style={{ color: '#71717a', margin: '0 0.5rem' }}>→</span>
+                          <span style={{ color: '#5eead4', fontWeight: 600 }}>{c.bien}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {aiReportModal.removedFragments.length === 0 && aiReportModal.corrections.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#52525b', fontSize: '0.9rem' }}>
+                      El documento ya estaba limpio — no se realizaron cambios.
+                    </div>
+                  )}
+                </div>
+              )}
+              {aiReportTab === 'original' && (
+                <div style={{ fontSize: '0.8rem', color: '#a1a1aa', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  {aiReportModal.originalText}
+                </div>
+              )}
+              {aiReportTab === 'clean' && (
+                <div style={{ fontSize: '0.8rem', color: '#d4d4d8', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  {aiReportModal.cleanText}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid-2">
         {/* Left: Document Upload + Queue */}
         <div className="panel">
@@ -580,7 +728,17 @@ function App() {
                 onChange={(e) => setRemoveExtraneousText(e.target.checked)}
                 style={{ accentColor: '#14b8a6', cursor: 'pointer' }}
               />
-              Omitir Encabezados/Notas
+              Filtro Base
+            </label>
+            <label style={{display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: useAiCleaner ? '#5eead4' : '#a1a1aa', cursor: 'pointer'}}>
+              <input 
+                type="checkbox" 
+                checked={useAiCleaner} 
+                onChange={(e) => setUseAiCleaner(e.target.checked)}
+                style={{ accentColor: '#14b8a6', cursor: 'pointer' }}
+              />
+              <Sparkles size={12} />
+              Limpieza IA OpenRouter
             </label>
             {scannedCandidates.length > 0 && (
               <button 
@@ -627,6 +785,7 @@ function App() {
                     <div className="batch-item-info">
                       <div className="batch-item-icon">
                         {item.status === 'extracting' && <Loader2 size={14} className="spinner" />}
+                        {item.status === 'cleaning' && <Sparkles size={14} className="spinner text-cyber-teal" />}
                         {item.status === 'extracted' && <FileText size={14} />}
                         {item.status === 'converting' && <Loader2 size={14} className="spinner" />}
                         {item.status === 'done' && <CheckCircle2 size={14} />}
@@ -637,6 +796,7 @@ function App() {
                         <div className="batch-item-name">{item.file.name}</div>
                         <div className="batch-item-meta">
                           {item.status === 'extracting' && 'Extrayendo texto...'}
+                          {item.status === 'cleaning' && 'Limpiando con IA...'}
                           {item.status === 'extracted' && `${item.wordCount.toLocaleString()} palabras`}
                           {item.status === 'converting' && (item.progress 
                             ? `Bloque ${item.progress.current + 1}/${item.progress.total}`
@@ -647,6 +807,25 @@ function App() {
                       </div>
                     </div>
                     <div className="batch-item-actions">
+                      {item.aiRemovedFragments !== undefined && (item.status === 'extracted' || item.status === 'done' || item.status === 'converting') && (
+                        <button 
+                          className="batch-action-btn" 
+                          onClick={() => setAiReportModal({
+                            fileName: item.file.name,
+                            originalText: item.aiOriginalText || '',
+                            cleanText: item.text,
+                            wordsBefore: item.wordCountOriginal || item.wordCount,
+                            wordsAfter: item.wordCount,
+                            removedFragments: item.aiRemovedFragments || [],
+                            corrections: item.aiCorrections || [],
+                            detectedTitle: item.aiDetectedTitle || ''
+                          })} 
+                          title="Informe Limpieza"
+                          style={{ color: '#14b8a6', marginRight: '4px' }}
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                      )}
                       {item.status === 'done' && item.audioUrl && canDownload && (
                         <>
                           <button className="batch-action-btn" onClick={() => playItem(item)} title="Reproducir">
