@@ -19,7 +19,7 @@ export const getApiBaseUrl = (): string => {
     return ''; // Uses Vite proxy
   }
   // Production: Render.com server URL
-  return 'https://edtech-tts.onrender.com';
+  return 'https://tts-edtech.onrender.com';
 };
 
 export const setApiBaseUrl = (url: string | null) => {

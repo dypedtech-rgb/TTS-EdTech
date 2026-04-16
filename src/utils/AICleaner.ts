@@ -192,7 +192,7 @@ async function callWithFallback(messages: { role: string; content: string }[]): 
         method: "POST",
         headers: {
           "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": window.location.href,
+          "HTTP-Referer": "https://dypedtech-rgb.github.io/TTS-EdTech/",
           "X-Title": "EdTech TTS",
           "Content-Type": "application/json"
         },
