@@ -160,8 +160,8 @@ function App() {
   const [duration, setDuration] = useState(0);
 
   // Configuración de Purado PDF
-  const [removeExtraneousText, setRemoveExtraneousText] = useState(true);
-  const [useAiCleaner, setUseAiCleaner] = useState(false);
+  const [removeExtraneousText, setRemoveExtraneousText] = useState(false);
+  const [useAiCleaner, setUseAiCleaner] = useState(true);
   const [aiReportModal, setAiReportModal] = useState<AiReportModalData | null>(null);
   const [aiReportTab, setAiReportTab] = useState<'summary' | 'original' | 'clean'>('summary');
 
