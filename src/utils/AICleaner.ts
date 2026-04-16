@@ -1,4 +1,4 @@
-const OPENROUTER_API_KEY = "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";
+const OPENROUTER_API_KEY = "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";
 
 // Modelos gratuitos con fallback — se prueban en orden
 const MODELS = [
