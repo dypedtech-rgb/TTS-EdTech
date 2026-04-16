@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
-import { cleanDocumentText } from './utils/AICleaner';
+import { cleanDocumentText, getOpenRouterKey, setOpenRouterKey, hasOpenRouterKey } from './utils/AICleaner';
 import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth, getApiBaseUrl } from './utils/TTSProcessor';
 import { scanForForeignWords, type ScannedWord } from './utils/ForeignWordScanner';
 import JSZip from 'jszip';
@@ -173,6 +173,7 @@ function App() {
   // Configuración de Purado PDF
   const [removeExtraneousText, setRemoveExtraneousText] = useState(false);
   const [useAiCleaner, setUseAiCleaner] = useState(true);
+  const [aiKeyInput, setAiKeyInput] = useState(getOpenRouterKey());
   const [aiReportModal, setAiReportModal] = useState<AiReportModalData | null>(null);
   const [aiReportTab, setAiReportTab] = useState<'summary' | 'original' | 'clean'>('summary');
 
@@ -751,6 +752,22 @@ function App() {
               <Sparkles size={12} />
               Limpieza IA OpenRouter
             </label>
+            {useAiCleaner && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                <input
+                  type="password"
+                  placeholder="sk-or-v1-... (pega tu API Key)"
+                  value={aiKeyInput}
+                  onChange={(e) => { setAiKeyInput(e.target.value); setOpenRouterKey(e.target.value); }}
+                  style={{
+                    flex: 1, fontSize: '0.7rem', padding: '0.3rem 0.5rem',
+                    background: '#18181b', border: '1px solid #27272a', borderRadius: '4px',
+                    color: '#a1a1aa', outline: 'none', fontFamily: 'monospace'
+                  }}
+                />
+                {hasOpenRouterKey() && <span style={{ color: '#22c55e', fontSize: '0.7rem' }}>✓</span>}
+              </div>
+            )}
             {scannedCandidates.length > 0 && (
               <button 
                 className="btn btn-secondary" 

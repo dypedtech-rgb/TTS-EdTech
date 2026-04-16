@@ -1,4 +1,12 @@
-const OPENROUTER_API_KEY = "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";
+// API Key almacenada en localStorage del navegador (nunca en el código fuente)
+const STORAGE_KEY = 'OPENROUTER_API_KEY';
+
+export const getOpenRouterKey = (): string => localStorage.getItem(STORAGE_KEY) || '';
+export const setOpenRouterKey = (key: string) => {
+  if (key.trim()) localStorage.setItem(STORAGE_KEY, key.trim());
+  else localStorage.removeItem(STORAGE_KEY);
+};
+export const hasOpenRouterKey = (): boolean => !!localStorage.getItem(STORAGE_KEY);
 
 // Modelos gratuitos con fallback — se prueban en orden
 const MODELS = [
@@ -202,6 +210,8 @@ function cleanTextWithRegex(text: string): { cleanText: string; removedFragments
 
 async function callWithFallback(messages: { role: string; content: string }[]): Promise<string> {
   let lastError = "";
+  const apiKey = getOpenRouterKey();
+  if (!apiKey) throw new Error("No se ha configurado la API Key de OpenRouter. Ve a la sección de limpieza y pega tu key.");
 
   for (const model of MODELS) {
     try {
@@ -209,7 +219,7 @@ async function callWithFallback(messages: { role: string; content: string }[]): 
       const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Authorization": `Bearer ${apiKey}`,
           "HTTP-Referer": "https://dypedtech-rgb.github.io/TTS-EdTech/",
           "X-Title": "EdTech TTS",
           "Content-Type": "application/json"
