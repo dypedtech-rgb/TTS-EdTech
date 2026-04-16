@@ -155,16 +155,16 @@ function cleanTextWithRegex(text: string): { cleanText: string; removedFragments
 
   // Regla 8: Sanar oraciones partidas por saltos de línea (wrap text)
   // Si una línea NO termina en puntuación (. , : ; ? !) y la siguiente empieza con minúscula, se unen con espacio.
-  const brokenSentenceMatches = result.match(/([^.,:;?!-\n>])\n+\s*([a-záéíóúñ])/g);
+  const brokenSentenceMatches = result.match(/([^.,:;?!\n])\n+\s*([a-záéíóúñ])/g);
   if (brokenSentenceMatches) {
     for (const match of brokenSentenceMatches) {
-      const m = match.match(/([^.,:;?!-\n>])\n+\s*([a-záéíóúñ])/);
+      const m = match.match(/([^.,:;?!\n])\n+\s*([a-záéíóúñ])/);
       if (m) {
         removed.push(`🔧 Oración reparada: "...${m[1]} \\n ${m[2]}..."`);
       }
     }
   }
-  result = result.replace(/([^.,:;?!-\n>])\n+\s*([a-záéíóúñ])/g, '$1 $2');
+  result = result.replace(/([^.,:;?!\n])\n+\s*([a-záéíóúñ])/g, '$1 $2');
 
   // Regla 9: Colapsar líneas vacías excesivas
   result = result.replace(/\n{3,}/g, '\n\n');
