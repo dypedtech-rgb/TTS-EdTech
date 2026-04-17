@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag } from 'lucide-react';
+import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag, Book, File, List } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
 import { cleanDocumentText, getOpenRouterKey, setOpenRouterKey, hasOpenRouterKey } from './utils/AICleaner';
 import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth, getApiBaseUrl } from './utils/TTSProcessor';
@@ -26,6 +26,7 @@ interface BatchItem {
 }
 
 interface AiReportModalData {
+  itemId: string;
   fileName: string;
   originalText: string;
   cleanText: string;
@@ -635,8 +636,8 @@ function App() {
             {/* Stats bar */}
             <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderBottom: '1px solid #27272a', fontSize: '0.8rem', color: '#a1a1aa', flexWrap: 'wrap' }}>
               {aiReportModal.detectedTitle && (
-                <div style={{ width: '100%', marginBottom: '0.25rem', color: '#5eead4', fontWeight: 600 }}>
-                  📖 "{aiReportModal.detectedTitle}"
+                <div style={{ width: '100%', marginBottom: '0.25rem', color: '#5eead4', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Book size={14} /> "{aiReportModal.detectedTitle}"
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -666,10 +667,16 @@ function App() {
                     color: aiReportTab === tab ? '#5eead4' : '#71717a',
                     border: 'none', cursor: 'pointer',
                     borderBottom: aiReportTab === tab ? '2px solid #14b8a6' : '2px solid transparent',
-                    transition: 'all 0.15s'
+                    transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
                   }}
                 >
-                  {tab === 'summary' ? `📋 Cambios (${aiReportModal.removedFragments.length + aiReportModal.corrections.length})` : tab === 'original' ? '📄 Texto Original' : '✨ Texto Limpio'}
+                  {tab === 'summary' && <List size={14} />}
+                  {tab === 'summary' && `Cambios (${aiReportModal.removedFragments.length + aiReportModal.corrections.length})`}
+                  {tab === 'original' && <File size={14} />}
+                  {tab === 'original' && 'Texto Original'}
+                  {tab === 'clean' && <Sparkles size={14} />}
+                  {tab === 'clean' && 'Texto Limpio'}
                 </button>
               ))}
             </div>
@@ -713,9 +720,28 @@ function App() {
                 </div>
               )}
               {aiReportTab === 'clean' && (
-                <div style={{ fontSize: '0.8rem', color: '#d4d4d8', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                  {aiReportModal.cleanText}
-                </div>
+                <textarea 
+                  value={aiReportModal.cleanText}
+                  onChange={(e) => {
+                    const newText = e.target.value;
+                    const newWordCount = newText.split(/\s+/).filter(w => w.length > 0).length;
+                    setAiReportModal(prev => prev ? { ...prev, cleanText: newText, wordsAfter: newWordCount } : null);
+                    setItems(prevItems => prevItems.map(i => i.id === aiReportModal.itemId ? { ...i, text: newText, wordCount: newWordCount } : i));
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    minHeight: '300px', 
+                    fontSize: '0.8rem', 
+                    color: '#d4d4d8', 
+                    lineHeight: 1.6, 
+                    fontFamily: 'monospace', 
+                    backgroundColor: 'transparent', 
+                    border: 'none', 
+                    outline: 'none', 
+                    resize: 'vertical' 
+                  }}
+                />
               )}
             </div>
           </div>
@@ -839,6 +865,7 @@ function App() {
                         <button 
                           className="batch-action-btn" 
                           onClick={() => setAiReportModal({
+                            itemId: item.id,
                             fileName: item.file.name,
                             originalText: item.aiOriginalText || '',
                             cleanText: item.text,
