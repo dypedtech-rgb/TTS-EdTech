@@ -126,13 +126,13 @@ function extractTableTitle(table: Element, fallbackIndex: number): { title: stri
 // Patrones de numeración de página que debemos eliminar
 const PAGE_NUMBER_PATTERNS = [
   /^\s*\d{1,4}\s*$/,                          // Solo un número: "1", "  23  "
-  /^\s*-\s*\d{1,4}\s*-\s*$/,                  // Guionado: "- 5 -"
-  /^\s*[–—]\s*\d{1,4}\s*[–—]\s*$/,           // Dashes: "– 5 –"
-  /^\s*•\s*\d{1,4}\s*•\s*$/,                  // Bullets: "• 17 •"
-  /^\s*página\s+\d+/i,                        // "Página 12"
-  /^\s*page\s+\d+/i,                          // "Page 12"
-  /^\s*pág\.?\s*\d+/i,                        // "Pág. 12"
-  /^\s*p\.\s*\d+/i,                           // "p. 12"
+  /^\s*[|]?\s*-\s*\d{1,4}\s*-\s*[|]?\s*$/,                // Guionado: "- 5 -"
+  /^\s*[|]?\s*[–—]\s*\d{1,4}\s*[–—]\s*[|]?\s*$/,           // Dashes: "– 5 –"
+  /^\s*[|]?\s*•\s*\d{1,4}\s*•\s*[|]?\s*$/,                  // Bullets: "• 17 •"
+  /^\s*[|]?\s*p[aá]gina\s+\d+\s*[|]?\s*/i,                        // "Página 12", "PAGINA 3"
+  /^\s*[|]?\s*page\s+\d+\s*[|]?\s*/i,                          // "Page 12"
+  /^\s*[|]?\s*p[aá]g\.?\s*\d+\s*[|]?\s*/i,                        // "Pág. 12"
+  /^\s*[|]?\s*p\.\s*\d+\s*[|]?\s*/i,                           // "p. 12"
   /^\s*\d+\s*de\s*\d+\s*$/i,                  // "3 de 15"
   /^\s*\d+\s*\/\s*\d+\s*$/,                   // "3/15"
 ];

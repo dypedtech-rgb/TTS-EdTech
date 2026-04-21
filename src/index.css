@@ -1,17 +1,18 @@
 :root {
-  --bg-slate: #030303;
-  --surface-slate: #0a0a0a;
-  --surface-slate-lighter: #141414;
-  --cyber-teal: #3b82f6; /* Changed to a sleek blue */
-  --cyber-teal-hover: #60a5fa;
-  --cyber-teal-alpha: rgba(59, 130, 246, 0.15);
+:root {
+  --bg-slate: #030305;
+  --surface-slate: rgba(10, 10, 12, 0.7);
+  --surface-slate-lighter: rgba(20, 20, 24, 0.7);
+  --cyber-teal: #0891b2; /* Cyber Teal */
+  --cyber-teal-hover: #06b6d4;
+  --cyber-teal-alpha: rgba(8, 145, 178, 0.15);
   --text-primary: #ededed;
   --text-secondary: #888888;
-  --border-color: #222222;
+  --border-color: rgba(255, 255, 255, 0.08);
   --border-focus: #333333;
   
   --radius-sharp: 8px;
-  --radius-md: 12px;
+  --radius-md: 14px;
 }
 
 * {
@@ -27,11 +28,12 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* Subtle grid background */
-  background-image: 
+  /* Subtle grid background with glassmorphism */
+  background: 
+    radial-gradient(circle at 50% 0%, rgba(8, 145, 178, 0.15), transparent 50%),
     linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 50px 50px;
+    linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px) var(--bg-slate);
+  background-size: 100% 100%, 50px 50px, 50px 50px;
 }
 
 #root {
@@ -41,7 +43,7 @@ body {
 
 /* App Container */
 .app-container {
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 3rem 2rem;
   width: 100%;
@@ -150,8 +152,10 @@ body {
 /* Panels */
 .panel {
   background-color: var(--surface-slate);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   padding: 1.75rem;
 }
 
@@ -1173,4 +1177,189 @@ body {
 .scanner-card.selected .scanner-count {
   color: var(--cyber-teal);
   background: rgba(59, 130, 246, 0.15);
+}
+
+/* ═══════════════════════════════════════════════ */
+/* Rediseño Tech-Noir Glassmorfismo               */
+/* ═══════════════════════════════════════════════ */
+.workspace-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border-top-width: 2px;
+  border-top-color: var(--cyber-teal);
+}
+
+.right-panels-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-panel {
+  background: linear-gradient(145deg, rgba(20, 20, 24, 0.8) 0%, rgba(10, 10, 12, 0.9) 100%);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Base Toggles */
+.glass-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: rgba(255,255,255,0.02);
+  border-radius: var(--radius-sharp);
+  border: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+}
+
+.toggle-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  background-color: #27272a;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background-color: #71717a;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--cyber-teal);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 10px var(--cyber-teal-alpha);
+}
+
+input:checked + .toggle-slider::after {
+  transform: translateX(16px);
+  background-color: #fff;
+  box-shadow: 0 0 5px rgba(255,255,255,0.8);
+}
+
+.toggle-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Glass Stats */
+.stats-glass-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-glass {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  backdrop-filter: blur(4px);
+}
+
+.stat-glass span {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stat-glass.success {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+}
+.stat-glass.success span { color: #10b981; }
+
+/* Animated Synthesis Button */
+.btn-aura {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--cyber-teal), #0284c7);
+  color: white;
+  border: none;
+  z-index: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+}
+
+.btn-aura::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: all 0.6s ease;
+  z-index: -1;
+}
+
+.btn-aura:hover::before {
+  left: 150%;
+  transition: all 0.6s ease;
+}
+
+.btn-aura:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.6);
+}
+
+.btn-aura:disabled {
+  background: var(--surface-slate-lighter);
+  color: var(--text-secondary);
+  box-shadow: none;
+  transform: none;
+  opacity: 0.7;
+}
+
+/* Improved Progress within Batch Item */
+.batch-item {
+  position: relative;
+  overflow: hidden; 
+  padding-bottom: 0.8rem;
+}
+
+.batch-progress-track {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+}
+
+.batch-progress-fill {
+  height: 100%;
+  background: var(--cyber-teal);
+  transition: width 0.3s ease-out;
+}
+
+.batch-progress-fill.done-fill {
+  background: #10b981;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag, Book, File, List } from 'lucide-react';
+import { UploadCloud, FileText, Play, Pause, Download, CheckCircle2, Loader2, Music, Sparkles, Clock, Volume2, Square, Cpu, Globe, Mic, Server, Wifi, WifiOff, RefreshCw, X, Package, Trash2, Tag, Book, File, List, Settings, Activity, Sliders, Shuffle } from 'lucide-react';
 import { parseDocument } from './utils/DocumentParser';
 import { cleanDocumentText, getOpenRouterKey, setOpenRouterKey, hasOpenRouterKey } from './utils/AICleaner';
 import { processTextToAudioBlob, playVoiceDemo, stopVoiceDemo, getWebSpeechVoices, checkServerHealth, getApiBaseUrl } from './utils/TTSProcessor';
@@ -46,21 +46,21 @@ const RELEASE_LOG = [
     version: 'v3.1.0',
     date: '2026-04-16',
     changes: [
-      '🤖 Limpieza Híbrida IA + Regex: Nuevo motor determinístico seguro que elimina basura estructural (pingbacks, URLs, fechas de artículos web, paginación) preservando 100% el texto narrativo.',
-      '✨ IA Quirúrgica + OpenRouter: Las lecturas exhaustivas por IA se redujeron a 1 sola llamada ultra-rápida (sólo lee 1500 letras) exclusiva para extraer el título y purgar errores ortográficos exactos limitando las demoras y caídas (error 429).',
-      '🔧 Motor Auto-Wrap: Identifica inteligente saltos de línea inusuales generados por la conversión PDF (donde no hay puntuación limitante) y los suelda en una oración fluida.',
-      '🩺 Reporte Clínico: El modal IA ahora no ofrece resúmenes ambiguos. Enlista quirúrgicamente cada fragmento barrido por Regex y cómo quedó cada falta ortográfica intervenida.',
-      '🎛️ Motor URL Personalizado: Implementado botón (Configurar/Cambiar) en UI para puentear el cliente web local hacia servidores TTS expuestos vía Ngrok / Localhost sin necesidad de recompilar.',
+      <><Cpu size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Limpieza Híbrida IA + Regex: Nuevo motor determinístico seguro que elimina basura estructural (pingbacks, URLs, fechas de artículos web, paginación) preservando 100% el texto narrativo.</>,
+      <><Sparkles size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> IA Quirúrgica + OpenRouter: Las lecturas exhaustivas por IA se redujeron a 1 sola llamada ultra-rápida (sólo lee 1500 letras) exclusiva para extraer el título y purgar errores ortográficos exactos limitando las demoras y caídas (error 429).</>,
+      <><Settings size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Motor Auto-Wrap: Identifica inteligente saltos de línea inusuales generados por la conversión PDF (donde no hay puntuación limitante) y los suelda en una oración fluida.</>,
+      <><Activity size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Reporte Clínico: El modal IA ahora no ofrece resúmenes ambiguos. Enlista quirúrgicamente cada fragmento barrido por Regex y cómo quedó cada falta ortográfica intervenida.</>,
+      <><Sliders size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Motor URL Personalizado: Implementado botón (Configurar/Cambiar) en UI para puentear el cliente web local hacia servidores TTS expuestos vía Ngrok / Localhost sin necesidad de recompilar.</>,
     ],
   },
   {
     version: 'v3.0.0',
     date: '2026-04-13',
     changes: [
-      '🌐 Voces Multilingüe: Emma y Andrew detectan automáticamente palabras en inglés y las pronuncian con acento nativo dentro del español.',
-      '🔀 Motor Two-Pass: Las voces españolas (Dalia, Jorge, etc.) ahora pronuncian palabras extranjeras marcadas con la voz inglesa Aria, recortando silencios inteligentemente.',
-      '🎵 Player de audio rediseñado: barra de progreso con relleno dinámico, thumb centrado, y diseño premium.',
-      '🎤 Demos de voz para voces multilingüe con texto que incluye palabras en inglés.',
+      <><Globe size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Voces Multilingüe: Emma y Andrew detectan automáticamente palabras en inglés y las pronuncian con acento nativo dentro del español.</>,
+      <><Shuffle size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Motor Two-Pass: Las voces españolas (Dalia, Jorge, etc.) ahora pronuncian palabras extranjeras marcadas con la voz inglesa Aria, recortando silencios inteligentemente.</>,
+      <><Music size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Player de audio rediseñado: barra de progreso con relleno dinámico, thumb centrado, y diseño premium.</>,
+      <><Mic size={14} className="icon-subtle inline-icon" style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Demos de voz para voces multilingüe con texto que incluye palabras en inglés.</>,
     ],
   },
   {
@@ -626,7 +626,7 @@ function App() {
             <div className="release-modal-header" style={{ borderBottom: '1px solid #27272a' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Sparkles size={18} className="text-cyber-teal" />
-                <span>Informe Limpieza: {aiReportModal.fileName}</span>
+                <span>{(aiReportModal.removedFragments?.length > 0 || aiReportModal.corrections?.length > 0) ? 'Informe Limpieza' : 'Editor de Documento'}: {aiReportModal.fileName}</span>
               </div>
               <button className="release-close-btn" onClick={() => { setAiReportModal(null); setAiReportTab('summary'); }}>
                 <X size={16} />
@@ -657,7 +657,9 @@ function App() {
 
             {/* Tabs */}
             <div style={{ display: 'flex', borderBottom: '1px solid #27272a' }}>
-              {(['summary', 'original', 'clean'] as const).map(tab => (
+              {(['summary', 'original', 'clean'] as const)
+                .filter(tab => tab !== 'summary' || (aiReportModal.removedFragments?.length > 0 || aiReportModal.corrections?.length > 0))
+                .map(tab => (
                 <button
                   key={tab}
                   onClick={() => setAiReportTab(tab)}
@@ -749,62 +751,22 @@ function App() {
       )}
 
       <div className="grid-2">
-        {/* Left: Document Upload + Queue */}
-        <div className="panel">
-          <div className="panel-header">
+        {/* Left: Document Workspace */}
+        <div className="panel workspace-panel">
+          <div className="panel-header borderless" style={{ marginBottom: '0.2rem' }}>
             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
               <FileText size={20} className="text-cyber-teal" />
-              <span>Documentos</span>
+              <span>Workspace & Documentos</span>
               {items.length > 0 && (
                 <span className="header-badge">{items.length}</span>
               )}
             </div>
-            <label style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: '#a1a1aa', cursor: 'pointer'}}>
-              <input 
-                type="checkbox" 
-                checked={removeExtraneousText} 
-                onChange={(e) => setRemoveExtraneousText(e.target.checked)}
-                style={{ accentColor: '#14b8a6', cursor: 'pointer' }}
-              />
-              Filtro Base
-            </label>
-            <label style={{display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: useAiCleaner ? '#5eead4' : '#a1a1aa', cursor: 'pointer'}}>
-              <input 
-                type="checkbox" 
-                checked={useAiCleaner} 
-                onChange={(e) => setUseAiCleaner(e.target.checked)}
-                style={{ accentColor: '#14b8a6', cursor: 'pointer' }}
-              />
-              <Sparkles size={12} />
-              Limpieza IA OpenRouter
-            </label>
-            {useAiCleaner && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
-                <input
-                  type="password"
-                  placeholder="sk-or-v1-... (pega tu API Key)"
-                  value={aiKeyInput}
-                  onChange={(e) => { setAiKeyInput(e.target.value); setOpenRouterKey(e.target.value); }}
-                  style={{
-                    flex: 1, fontSize: '0.7rem', padding: '0.3rem 0.5rem',
-                    background: '#18181b', border: '1px solid #27272a', borderRadius: '4px',
-                    color: '#a1a1aa', outline: 'none', fontFamily: 'monospace'
-                  }}
-                />
-                {hasOpenRouterKey() && <span style={{ color: '#22c55e', fontSize: '0.7rem' }}>✓</span>}
-              </div>
-            )}
-            {scannedCandidates.length > 0 && (
-              <button 
-                className="btn btn-secondary" 
-                style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', backgroundColor: foreignWords.length > 0 ? '#14b8a620' : '#27272a', borderColor: foreignWords.length > 0 ? '#14b8a650' : 'transparent', color: foreignWords.length > 0 ? '#5eead4' : '#a1a1aa' }}
-                onClick={() => setIsScannerOpen(true)}
-              >
-                <Globe size={12} />
-                Inglés ({scannedCandidates.length})
-                {foreignWords.length > 0 && ` [${foreignWords.length} ✓]`}
-              </button>
-            )}
+          </div>
+          
+          <div className="stats-glass-row" style={{ marginBottom: '1.25rem' }}>
+            <div className="stat-glass">Total: <span>{totalWords.toLocaleString()}</span> palabras</div>
+            <div className="stat-glass">Archivos: <span>{items.length}</span></div>
+            {doneCount > 0 && <div className="stat-glass success">Completados: <span>{doneCount}/{items.length}</span></div>}
           </div>
           
           <div 
@@ -861,21 +823,25 @@ function App() {
                       </div>
                     </div>
                     <div className="batch-item-actions">
-                      {item.aiRemovedFragments !== undefined && (item.status === 'extracted' || item.status === 'done' || item.status === 'converting') && (
+                      {(item.status === 'extracted' || item.status === 'done' || item.status === 'converting') && (
                         <button 
                           className="batch-action-btn" 
-                          onClick={() => setAiReportModal({
-                            itemId: item.id,
-                            fileName: item.file.name,
-                            originalText: item.aiOriginalText || '',
-                            cleanText: item.text,
-                            wordsBefore: item.wordCountOriginal || item.wordCount,
-                            wordsAfter: item.wordCount,
-                            removedFragments: item.aiRemovedFragments || [],
-                            corrections: item.aiCorrections || [],
-                            detectedTitle: item.aiDetectedTitle || ''
-                          })} 
-                          title="Informe Limpieza"
+                          onClick={() => {
+                            const hasAiReport = item.aiRemovedFragments !== undefined && (item.aiRemovedFragments.length > 0 || (item.aiCorrections && item.aiCorrections.length > 0));
+                            setAiReportTab(hasAiReport ? 'summary' : 'clean');
+                            setAiReportModal({
+                              itemId: item.id,
+                              fileName: item.file.name,
+                              originalText: item.aiOriginalText || item.text,
+                              cleanText: item.text,
+                              wordsBefore: item.wordCountOriginal || item.wordCount,
+                              wordsAfter: item.wordCount,
+                              removedFragments: item.aiRemovedFragments || [],
+                              corrections: item.aiCorrections || [],
+                              detectedTitle: item.aiDetectedTitle || ''
+                            });
+                          }} 
+                          title="Editor y Reporte"
                           style={{ color: '#14b8a6', marginRight: '4px' }}
                         >
                           <Sparkles size={14} />
@@ -897,32 +863,21 @@ function App() {
                         </button>
                       )}
                     </div>
+                    {item.status === 'converting' && item.progress && (
+                      <div className="batch-progress-track">
+                        <div className="batch-progress-fill" style={{ width: `${(item.progress.current / item.progress.total) * 100}%` }}></div>
+                      </div>
+                    )}
+                    {item.status === 'done' && (
+                      <div className="batch-progress-track">
+                        <div className="batch-progress-fill done-fill" style={{ width: '100%' }}></div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Batch Stats */}
-              <div className="stats-grid" style={{ marginTop: '1rem' }}>
-                <div className="stat-card">
-                  <div className="stat-value">{items.length}</div>
-                  <div className="stat-label">Archivos</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-value">{totalWords.toLocaleString()}</div>
-                  <div className="stat-label">Palabras Total</div>
-                </div>
-                {doneCount > 0 && (
-                  <div className="stat-card" style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CheckCircle2 size={16} className="text-cyber-teal" />
-                      <div className="stat-value" style={{ fontSize: '1rem' }}>
-                        {doneCount}/{items.length} completados
-                        {errorCount > 0 && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>({errorCount} errores)</span>}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+
 
               {!isBatchProcessing && (
                 <button className="btn btn-secondary w-full mt-3" onClick={clearAll} style={{ fontSize: '0.8rem' }}>
@@ -934,12 +889,76 @@ function App() {
           )}
         </div>
 
-        {/* Right: Voice Engine Config */}
-        <div className="panel">
-          <div className="panel-header">
-            <Sparkles size={20} className="text-cyber-teal" />
-            <span>Motor de Voz</span>
+        {/* Right: Setup & Pipeline Configurations */}
+        <div className="right-panels-column">
+          {/* Section 1: Pre-Processing */}
+          <div className="panel settings-panel">
+            <div className="panel-header small-header borderless">
+              <Settings size={16} className="text-cyber-teal" />
+              <span>Pre-Procesamiento</span>
+            </div>
+            
+            <div className="glass-row">
+              <label className="toggle-switch-wrapper" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <span className="toggle-label">Filtro Básico (Numeración/Extranjeros)</span>
+                <input 
+                  type="checkbox" 
+                  checked={removeExtraneousText} 
+                  onChange={(e) => setRemoveExtraneousText(e.target.checked)}
+                  style={{ display: 'none' }}
+                />
+                <div className="toggle-slider"></div>
+              </label>
+            </div>
+            
+            <div className="glass-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <label className="toggle-switch-wrapper" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <span className="toggle-label"><Sparkles size={14} className="text-cyber-teal" /> Limpieza IA Quirúrgica</span>
+                <input 
+                  type="checkbox" 
+                  checked={useAiCleaner} 
+                  onChange={(e) => setUseAiCleaner(e.target.checked)}
+                  style={{ display: 'none' }}
+                />
+                <div className="toggle-slider"></div>
+              </label>
+              {useAiCleaner && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%', marginTop: '0.2rem' }}>
+                  <input
+                    type="password"
+                    placeholder="sk-or-v1-... (pega tu API Key de OpenRouter)"
+                    value={aiKeyInput}
+                    onChange={(e) => { setAiKeyInput(e.target.value); setOpenRouterKey(e.target.value); }}
+                    style={{
+                      flex: 1, fontSize: '0.75rem', padding: '0.4rem 0.6rem',
+                      background: 'rgba(0,0,0,0.4)', border: '1px solid #27272a', borderRadius: '4px',
+                      color: '#a1a1aa', outline: 'none', fontFamily: 'monospace'
+                    }}
+                  />
+                  {hasOpenRouterKey() && <span style={{ color: '#10b981', fontSize: '0.75rem' }}><CheckCircle2 size={14} /></span>}
+                </div>
+              )}
+            </div>
+            
+            {scannedCandidates.length > 0 && (
+              <button 
+                className="btn w-full mt-2" 
+                style={{ fontSize: '0.8rem', padding: '0.5rem', backgroundColor: foreignWords.length > 0 ? 'var(--cyber-teal-alpha)' : 'rgba(255,255,255,0.02)', borderColor: foreignWords.length > 0 ? 'var(--cyber-teal)' : 'rgba(255,255,255,0.06)', color: foreignWords.length > 0 ? 'white' : '#a1a1aa', borderStyle: 'dashed', borderRadius: '8px', cursor: 'pointer' }}
+                onClick={() => setIsScannerOpen(true)}
+              >
+                <Globe size={14} />
+                Extranjerismos Detectados ({scannedCandidates.length})
+                {foreignWords.length > 0 && ` [${foreignWords.length} Aplicados]`}
+              </button>
+            )}
           </div>
+
+          {/* Section 2: Voice Engine Config */}
+          <div className="panel engine-panel">
+            <div className="panel-header small-header borderless">
+              <Cpu size={16} className="text-cyber-teal" />
+              <span>Motor de Síntesis</span>
+            </div>
 
           {/* Provider Cards */}
           <div className="form-group">
@@ -1008,7 +1027,7 @@ function App() {
               <select className="form-select voice-select" value={voice} onChange={e => setVoice(e.target.value)}>
                 {provider === 'edge-tts' && (
                   <>
-                    <optgroup label="🌐 Multilingüe (Español + Inglés Nativo)">
+                    <optgroup label="Multilingüe (Español + Inglés Nativo)">
                       <option value="en-US-EmmaMultilingualNeural">Emma (Femenino - Multilingüe)</option>
                       <option value="en-US-AndrewMultilingualNeural">Andrew (Masculino - Multilingüe)</option>
                     </optgroup>
@@ -1079,7 +1098,7 @@ function App() {
           {/* Batch Convert Button */}
           <div className="action-container">
             <button 
-              className="btn btn-action flush-btn" 
+              className="btn btn-aura flush-btn" 
               onClick={handleBatchConvert}
               disabled={readyCount === 0 || isBatchProcessing}
             >
