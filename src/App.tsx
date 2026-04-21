@@ -184,7 +184,7 @@ function App() {
   // Total stats
   const totalWords = items.reduce((sum, it) => sum + it.wordCount, 0);
   const doneCount = items.filter(i => i.status === 'done').length;
-  const errorCount = items.filter(i => i.status === 'error').length;
+  // const errorCount = items.filter(i => i.status === 'error').length;
 
   // Scan for foreign words across all text segments
   useEffect(() => {
